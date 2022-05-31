@@ -42,7 +42,10 @@ public stock const PluginAuthor[ ] =	"Yoshioka Haruki";
 #endif
 
 /* ~ [ Weapon Settings ] ~ */
-const WeaponHandSubmodel =				0; // Hand Submodel (0: Male / 1: Female)
+// #define EnableSubmodelSupport
+#if defined EnableSubmodelSupport
+	const WeaponHandSubmodel =				0; // Hand Submodel (0: Male / 1: Female)
+#endif
 const WeaponUnicalIndex =				31052022;
 new const WeaponName[ ] =				"Iguana";
 new const WeaponReference[ ] =			"weapon_p228";
@@ -251,48 +254,59 @@ public client_disconnected( pPlayer ) BIT_SUB( gl_bitUserLeftHanded, BIT( pPlaye
 /* ~ [ Fakemeta ] ~ */
 public FM_Hook_UpdateClientData_Post( const pPlayer, const iSendWeapons, const CD_Handle ) 
 {
-	static iSpecMode, pTarget;
-	pTarget = ( iSpecMode = get_entvar( pPlayer, var_iuser1 ) ) ? get_entvar( pPlayer, var_iuser2 ) : pPlayer;
+	#if !defined EnableSubmodelSupport
+		if ( !is_user_alive( pPlayer ) )
+			return;
 
-	if ( !is_user_connected( pTarget ) )
-		return;
+		static pActiveItem; pActiveItem = get_member( pPlayer, m_pActiveItem );
+		if ( is_nullent( pActiveItem ) || !IsCustomWeapon( pActiveItem, WeaponUnicalIndex ) )
+			return;
 
-	static pActiveItem; pActiveItem = get_member( pTarget, m_pActiveItem );
-	if ( is_nullent( pActiveItem ) || !IsCustomWeapon( pActiveItem, WeaponUnicalIndex ) )
-		return;
+		set_cd( CD_Handle, CD_flNextAttack, 2.0 );
+	#else
+		static iSpecMode, pTarget;
+		pTarget = ( iSpecMode = get_entvar( pPlayer, var_iuser1 ) ) ? get_entvar( pPlayer, var_iuser2 ) : pPlayer;
 
-	set_cd( CD_Handle, CD_flNextAttack, 2.0 );
+		if ( !is_user_connected( pTarget ) )
+			return;
 
-	enum eSpecInfo {
-		SPEC_MODE,
-		SPEC_TARGET
-	};
-	static aSpecInfo[ MAX_PLAYERS + 1 ][ eSpecInfo ];
+		static pActiveItem; pActiveItem = get_member( pTarget, m_pActiveItem );
+		if ( is_nullent( pActiveItem ) || !IsCustomWeapon( pActiveItem, WeaponUnicalIndex ) )
+			return;
 
-	if ( iSpecMode )
-	{
-		if ( aSpecInfo[ pPlayer ][ SPEC_MODE ] != iSpecMode )
+		set_cd( CD_Handle, CD_flNextAttack, 2.0 );
+
+		enum eSpecInfo {
+			SPEC_MODE,
+			SPEC_TARGET
+		};
+		static aSpecInfo[ MAX_PLAYERS + 1 ][ eSpecInfo ];
+
+		if ( iSpecMode )
 		{
-			aSpecInfo[ pPlayer ][ SPEC_MODE ] = iSpecMode;
-			aSpecInfo[ pPlayer ][ SPEC_TARGET ] = 0;
+			if ( aSpecInfo[ pPlayer ][ SPEC_MODE ] != iSpecMode )
+			{
+				aSpecInfo[ pPlayer ][ SPEC_MODE ] = iSpecMode;
+				aSpecInfo[ pPlayer ][ SPEC_TARGET ] = 0;
+			}
+
+			if ( iSpecMode == OBS_IN_EYE && aSpecInfo[ pPlayer ][ SPEC_TARGET ] != pTarget )
+				aSpecInfo[ pPlayer ][ SPEC_TARGET ] = pTarget;
 		}
 
-		if ( iSpecMode == OBS_IN_EYE && aSpecInfo[ pPlayer ][ SPEC_TARGET ] != pTarget )
-			aSpecInfo[ pPlayer ][ SPEC_TARGET ] = pTarget;
-	}
+		static Float: flLastEventCheck; flLastEventCheck = get_member( pActiveItem, m_flLastEventCheck );
+		if ( !flLastEventCheck )
+		{
+			set_cd( CD_Handle, CD_WeaponAnim, WeaponAnim_Dummy );
+			return;
+		}
 
-	static Float: flLastEventCheck; flLastEventCheck = get_member( pActiveItem, m_flLastEventCheck );
-	if ( !flLastEventCheck )
-	{
-		set_cd( CD_Handle, CD_WeaponAnim, WeaponAnim_Dummy );
-		return;
-	}
-
-	if ( flLastEventCheck <= get_gametime( ) )
-	{
-		UTIL_SendWeaponAnim( MSG_ONE, pTarget, pActiveItem, WeaponAnim_Draw );
-		set_member( pActiveItem, m_flLastEventCheck, 0.0 );
-	}
+		if ( flLastEventCheck <= get_gametime( ) )
+		{
+			UTIL_SendWeaponAnim( MSG_ONE, pTarget, pActiveItem, WeaponAnim_Draw );
+			set_member( pActiveItem, m_flLastEventCheck, 0.0 );
+		}
+	#endif
 }
 
 /* ~ [ ReAPI ] ~ */
@@ -372,11 +386,16 @@ public Ham_CBasePlayerWeapon__Deploy_Post( const pItem )
 
 	set_entvar( pPlayer, var_viewmodel, WeaponModelView );
 	set_entvar( pPlayer, var_weaponmodel, WeaponModelPlayer );
-	set_entvar( pItem, var_body, WeaponHandSubmodel );
 
-	UTIL_SendWeaponAnim( MSG_ONE, pPlayer, pItem, WeaponAnim_Dummy );
+	#if defined EnableSubmodelSupport
+		set_entvar( pItem, var_body, WeaponHandSubmodel );
+		set_member( pItem, m_flLastEventCheck, get_gametime( ) + 0.1 );
 
-	set_member( pItem, m_flLastEventCheck, get_gametime( ) + 0.1 );
+		UTIL_SendWeaponAnim( MSG_ONE, pPlayer, pItem, WeaponAnim_Dummy );
+	#else
+		UTIL_SendWeaponAnim( MSG_ONE, pPlayer, pItem, WeaponAnim_Draw );
+	#endif
+
 	set_member( pItem, m_Weapon_flAccuracy, WeaponAccuracy );
 	set_member( pItem, m_Weapon_flTimeWeaponIdle, WeaponAnim_Draw_Time + 0.1 );
 	set_member( pPlayer, m_flNextAttack, WeaponAnim_Draw_Time );
