@@ -3,6 +3,9 @@ Weapon Lightning BIG-EYE from Counter-Strike: Online for Counter-Strike 1.6 (bas
 
 About this weapon: [Link](https://cso.fandom.com/wiki/Lightning_BIG-EYE)
 
+### Demo Video
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/VvZwaEAOfFQ/0.jpg)](https://youtu.be/VvZwaEAOfFQ)
+
 ### Requirements
 ReHLDS, ReGameDLL, Metamod-r (or Metamod-P), AMX Mod X, ReAPI.
 * Tip: Recommend using the latest versions.
