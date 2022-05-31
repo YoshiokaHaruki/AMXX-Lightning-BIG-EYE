@@ -200,7 +200,7 @@ public bool: native_give_user_weapon( )
 {
 	enum { arg_player = 1 };
 
-	new pPlayer = get_param( arg_player );
+	static pPlayer; pPlayer = get_param( arg_player );
 	if ( !is_user_alive( pPlayer ) )
 		return false;
 
@@ -298,7 +298,8 @@ public FM_Hook_UpdateClientData_Post( const pPlayer, const iSendWeapons, const C
 /* ~ [ ReAPI ] ~ */
 public RG_CWeaponBox__SetModel_Pre( const pWeaponBox, const szModel[ ] ) 
 {
-	if ( !IsCustomWeapon( UTIL_GetWeaponBoxItem( pWeaponBox ), WeaponUnicalIndex ) )
+	static pItem; pItem = UTIL_GetWeaponBoxItem( pWeaponBox );
+	if ( pItem == NULLENT || !IsCustomWeapon( pItem, WeaponUnicalIndex ) )
 		return HC_CONTINUE;
 
 	SetHookChainArg( 2, ATYPE_STRING, WeaponModelWorld );
@@ -309,7 +310,7 @@ public RG_CWeaponBox__SetModel_Pre( const pWeaponBox, const szModel[ ] )
 
 public RG_IsPenetrableEntity_Post( const Vector3( vecStart ), Vector3( vecEnd ), const pPlayer, const pHit )
 {
-	new iPointContents = engfunc( EngFunc_PointContents, vecEnd );
+	static iPointContents; iPointContents = engfunc( EngFunc_PointContents, vecEnd );
 	if ( iPointContents == CONTENTS_SKY )
 		return;
 
@@ -326,7 +327,7 @@ public RG_IsPenetrableEntity_Post( const Vector3( vecStart ), Vector3( vecEnd ),
 	if ( iPointContents == CONTENTS_WATER )
 		return;
 
-	new Vector3( vecPlaneNormal ); global_get( glb_trace_plane_normal, vecPlaneNormal );
+	static Vector3( vecPlaneNormal ); global_get( glb_trace_plane_normal, vecPlaneNormal );
 
 	#if defined _api_smokewallpuff_included
 		zc_smoke_wallpuff_draw( vecEnd, vecPlaneNormal );
@@ -497,6 +498,9 @@ public Ham_CBasePlayerWeapon__Reload_Post( const pItem )
 		return;
 
 	UTIL_SendWeaponAnim( MSG_ONE, pPlayer, pItem, WeaponAnim_Reload );
+	#if defined UseCustomAmmoIndex
+		rg_set_animation( pPlayer, PLAYER_RELOAD );
+	#endif
 
 	set_member( pPlayer, m_flNextAttack, WeaponAnim_Reload_Time );
 	set_member( pItem, m_Weapon_flTimeWeaponIdle, WeaponAnim_Reload_Time );
@@ -642,12 +646,12 @@ stock UTIL_SendWeaponAnim( const iDest, const pReceiver, const pItem, const iAni
 	if ( get_entvar( pReceiver, var_iuser1 ) )
 		return;
 
-	static i, iCount, pSpectator, iszSpectators[ MAX_PLAYERS ];
-	get_players( iszSpectators, iCount, "bch" );
+	static i, iCount, pSpectator, aSpectators[ MAX_PLAYERS ];
+	get_players( aSpectators, iCount, "bch" );
 
 	for ( i = 0; i < iCount; i++ )
 	{
-		pSpectator = iszSpectators[ i ];
+		pSpectator = aSpectators[ i ];
 
 		if ( get_entvar( pSpectator, var_iuser1 ) != OBS_IN_EYE )
 			continue;
