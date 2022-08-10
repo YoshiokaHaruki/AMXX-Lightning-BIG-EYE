@@ -23,7 +23,7 @@ public stock const PluginName[ ] =		"[ZP] Weapon: Lightning BIG-EYE";
 public stock const PluginVersion[ ] =	"1.0";
 public stock const PluginAuthor[ ] =	"Yoshioka Haruki";
 
-/* ~ [ Includes ]~ */
+/* ~ [ Includes ] ~ */
 #include <amxmodx>
 #include <fakemeta>
 #include <hamsandwich>
@@ -413,7 +413,8 @@ public Ham_CBasePlayerWeapon__Holster_Post( const pItem )
 		query_client_cvar( pPlayer, "cl_righthand", "CBasePlayer__CheckLeftHand" );
 
 	#if defined _api_muzzleflash_included
-		zc_muzzle_destroy( pPlayer, gl_iMuzzleId );
+		if ( is_user_connected( pPlayer ) )
+			zc_muzzle_destroy( pPlayer, gl_iMuzzleId );
 	#endif
 	
 	set_member( pItem, m_Weapon_iGlock18ShotsFired, 0 );
