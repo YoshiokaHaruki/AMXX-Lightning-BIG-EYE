@@ -68,7 +68,6 @@ const WeaponMaxAmmo =					160;
 #define UseCustomAmmoIndex				// Comment this line if u dont need custom ammo index
 #if defined UseCustomAmmoIndex
 	const WeaponAmmoIndex =				16;
-	new const WeaponAmmoName[ ] =		"ammo_h2o";
 #endif
 
 const WeaponDamage =					31;
@@ -364,7 +363,6 @@ public Ham_CBasePlayerWeapon__Spawn_Post( const pItem )
 
 	#if defined UseCustomAmmoIndex
 		set_member( pItem, m_Weapon_iPrimaryAmmoType, WeaponAmmoIndex );
-		rg_set_iteminfo( pItem, ItemInfo_pszAmmo1, WeaponAmmoName );
 	#endif
 
 	#if defined WeaponListDir
