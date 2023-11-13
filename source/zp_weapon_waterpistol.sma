@@ -20,7 +20,7 @@
  */
 
 public stock const PluginName[ ] =		"[ZP] Weapon: Lightning BIG-EYE";
-public stock const PluginVersion[ ] =	"1.0";
+public stock const PluginVersion[ ] =	"1.1";
 public stock const PluginAuthor[ ] =	"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -68,6 +68,7 @@ const WeaponMaxAmmo =					160;
 #define UseCustomAmmoIndex				// Comment this line if u dont need custom ammo index
 #if defined UseCustomAmmoIndex
 	const WeaponAmmoIndex =				16;
+	new const WeaponAmmoName[ ] =		"ammo_h2o";
 #endif
 
 const WeaponDamage =					31;
@@ -202,16 +203,15 @@ public bool: native_give_user_weapon( )
 {
 	enum { arg_player = 1 };
 
-	static pPlayer; pPlayer = get_param( arg_player );
+	new pPlayer = get_param( arg_player );
 	if ( !is_user_alive( pPlayer ) )
 		return false;
 
-	static iDefaultAmmo;
-	#if defined UseCustomAmmoIndex
-		iDefaultAmmo = 0;
-	#else
-		iDefaultAmmo = WeaponDefaultAmmo;
-	#endif
+#if defined UseCustomAmmoIndex
+	new iDefaultAmmo = 0;
+#else
+	new iDefaultAmmo = WeaponDefaultAmmo;
+#endif
 
 	return UTIL_GiveCustomWeapon( pPlayer, WeaponReference, WeaponUnicalIndex, iDefaultAmmo );
 }
@@ -239,12 +239,11 @@ public client_disconnected( pPlayer ) BIT_SUB( gl_bitUserLeftHanded, BIT( pPlaye
 		if ( iItemId != gl_iItemId ) 
 			return PLUGIN_HANDLED;
 
-		static iDefaultAmmo;
-		#if defined UseCustomAmmoIndex
-			iDefaultAmmo = 0;
-		#else
-			iDefaultAmmo = WeaponDefaultAmmo;
-		#endif
+	#if defined UseCustomAmmoIndex
+		new iDefaultAmmo = 0;
+	#else
+		new iDefaultAmmo = WeaponDefaultAmmo;
+	#endif
 
 		return UTIL_GiveCustomWeapon( pPlayer, WeaponReference, WeaponUnicalIndex, iDefaultAmmo ) ? PLUGIN_CONTINUE : ZP_PLUGIN_HANDLED;
 	}
@@ -347,8 +346,7 @@ public RG_IsPenetrableEntity_Post( const Vector3( vecStart ), Vector3( vecEnd ),
 	#endif
 
 	xs_vec_mul_scalar( vecPlaneNormal, random_float( 25.0, 30.0 ), vecPlaneNormal );
-	message_begin_f( MSG_PAS, SVC_TEMPENTITY, vecEnd );
-	UTIL_TE_STREAK_SPLASH( vecEnd, vecPlaneNormal, 4, random_num( 10, 20 ), 3, 64 );
+	UTIL_TE_STREAK_SPLASH( MSG_PAS, vecEnd, vecPlaneNormal, 4, random_num( 10, 20 ), 3, 64 );
 }
  
 /* ~ [ HamSandwich ] ~ */
@@ -363,6 +361,7 @@ public Ham_CBasePlayerWeapon__Spawn_Post( const pItem )
 
 	#if defined UseCustomAmmoIndex
 		set_member( pItem, m_Weapon_iPrimaryAmmoType, WeaponAmmoIndex );
+		rg_set_iteminfo( pItem, ItemInfo_pszAmmo1, WeaponAmmoName );
 	#endif
 
 	#if defined WeaponListDir
@@ -624,11 +623,8 @@ public CBasePlayerWeapon__DrawEffects( const pPlayer, const Vector3( vecEnd ) )
 	static Vector3( vecSrc );
 	UTIL_GetWeaponPosition( pPlayer, 25.0, 5.0 * ( BIT_VALID( gl_bitUserLeftHanded, BIT( pPlayer ) ) ? -1.0 : 1.0 ), -7.5, vecSrc );
 
-	message_begin( MSG_BROADCAST, SVC_TEMPENTITY );
-	UTIL_TE_BUBBLETRAIL( vecSrc, vecEnd, 64, gl_iszModelIndex[ ModelIndex_Bubbles ], 32, 16 );
-
-	message_begin( MSG_BROADCAST, SVC_TEMPENTITY );
-	UTIL_TE_SPRITETRAIL( vecEnd, vecSrc, gl_iszModelIndex[ ModelIndex_Gibs ], clamp( floatround( xs_vec_distance_2d( vecSrc, vecEnd ) / 64.0 ), 4, 20 ), 1, 1, 16, 24 );
+	UTIL_TE_BUBBLETRAIL( MSG_BROADCAST, vecSrc, vecEnd, 64, gl_iszModelIndex[ ModelIndex_Bubbles ], 32, 16 );
+	UTIL_TE_SPRITETRAIL( MSG_BROADCAST, vecEnd, vecSrc, gl_iszModelIndex[ ModelIndex_Gibs ], clamp( floatround( xs_vec_distance_2d( vecSrc, vecEnd ) / 64.0 ), 4, 20 ), 1, 1, 16, 24 );
 }
 
 /* ~ [ Stocks ] ~ */
@@ -653,7 +649,7 @@ stock bool: UTIL_GiveCustomWeapon( const pPlayer, const szWeaponReference[ ], co
 /* -> Weapon Animation <- */
 stock UTIL_SendWeaponAnim( const iDest, const pReceiver, const pItem, const iAnim ) 
 {
-	static iBody; iBody = get_entvar( pItem, var_body );
+	new iBody = get_entvar( pItem, var_body );
 	set_entvar( pReceiver, var_weaponanim, iAnim );
 
 	message_begin( iDest, SVC_WEAPONANIM, .player = pReceiver );
@@ -664,7 +660,7 @@ stock UTIL_SendWeaponAnim( const iDest, const pReceiver, const pItem, const iAni
 	if ( get_entvar( pReceiver, var_iuser1 ) )
 		return;
 
-	static i, iCount, pSpectator, aSpectators[ MAX_PLAYERS ];
+	new i, iCount, pSpectator, aSpectators[ MAX_PLAYERS ];
 	get_players( aSpectators, iCount, "bch" );
 
 	for ( i = 0; i < iCount; i++ )
@@ -689,8 +685,8 @@ stock UTIL_SendWeaponAnim( const iDest, const pReceiver, const pItem, const iAni
 /* -> Get Vector Aiming <- */
 stock UTIL_GetVectorAiming( const pPlayer, Vector3( vecAiming ) ) 
 {
-	static Vector3( vecViewAngle ); get_entvar( pPlayer, var_v_angle, vecViewAngle );
-	static Vector3( vecPunchangle ); get_entvar( pPlayer, var_punchangle, vecPunchangle );
+	new Vector3( vecViewAngle ); get_entvar( pPlayer, var_v_angle, vecViewAngle );
+	new Vector3( vecPunchangle ); get_entvar( pPlayer, var_punchangle, vecPunchangle );
 
 	xs_vec_add( vecViewAngle, vecPunchangle, vecViewAngle );
 	angle_vector( vecViewAngle, ANGLEVECTOR_FORWARD, vecAiming );
@@ -699,8 +695,8 @@ stock UTIL_GetVectorAiming( const pPlayer, Vector3( vecAiming ) )
 /* -> Get player eye position <- */
 stock UTIL_GetEyePosition( const pPlayer, Vector3( vecEyeLevel ) )
 {
-	static Vector3( vecOrigin ); get_entvar( pPlayer, var_origin, vecOrigin );
-	static Vector3( vecViewOfs ); get_entvar( pPlayer, var_view_ofs, vecViewOfs );
+	new Vector3( vecOrigin ); get_entvar( pPlayer, var_origin, vecOrigin );
+	new Vector3( vecViewOfs ); get_entvar( pPlayer, var_view_ofs, vecViewOfs );
 
 	xs_vec_add( vecOrigin, vecViewOfs, vecEyeLevel );
 }
@@ -708,10 +704,10 @@ stock UTIL_GetEyePosition( const pPlayer, Vector3( vecEyeLevel ) )
 /* -> Get Weapon Position <- */
 stock UTIL_GetWeaponPosition( const pPlayer, const Float: flForward, const Float: flRight, const Float: flUp, Vector3( vecStart ) ) 
 {
-	static Vector3( vecOrigin ); UTIL_GetEyePosition( pPlayer, vecOrigin );
+	new Vector3( vecOrigin ); UTIL_GetEyePosition( pPlayer, vecOrigin );
 
-	static Vector3( vecViewAngle ); get_entvar( pPlayer, var_v_angle, vecViewAngle );
-	static Vector3( vecForward ), Vector3( vecRight ), Vector3( vecUp );
+	new Vector3( vecViewAngle ); get_entvar( pPlayer, var_v_angle, vecViewAngle );
+	new Vector3( vecForward ), Vector3( vecRight ), Vector3( vecUp );
 	engfunc( EngFunc_AngleVectors, vecViewAngle, vecForward, vecRight, vecUp );
 
 	xs_vec_add_scaled( vecOrigin, vecForward, flForward, vecOrigin );
@@ -730,8 +726,8 @@ stock Float: UTIL_GetSpreadByAction( const pPlayer, const Float: flSpreadInActio
 		Act_None
 	};
 
-	static bitsFlags; bitsFlags = get_entvar( pPlayer, var_flags );
-	static Vector3( vecVelocity ); get_entvar( pPlayer, var_velocity, vecVelocity );
+	new bitsFlags; bitsFlags = get_entvar( pPlayer, var_flags );
+	new Vector3( vecVelocity ); get_entvar( pPlayer, var_velocity, vecVelocity );
 
 	if ( ~bitsFlags & FL_ONGROUND )
 		return Float: flSpreadInActions[ Act_OnAir ];
@@ -796,8 +792,7 @@ stock UTIL_GunshotDecalTrace( const pEntity, const Vector3( vecOrigin ) )
 	if ( iDecalId == -1 )
 		return;
 
-	message_begin_f( MSG_PAS, SVC_TEMPENTITY, vecOrigin );
-	UTIL_TE_GUNSHOTDECAL( vecOrigin, pEntity, iDecalId );
+	UTIL_TE_GUNSHOTDECAL( MSG_PAS, vecOrigin, pEntity, iDecalId );
 }
 
 stock UTIL_DamageDecal( const pEntity )
@@ -861,8 +856,9 @@ stock UTIL_AmmoPickup( const iDest, const pReceiver, const iAmmoType, const iAmo
 }
 
 /* -> TE_GUNSHOTDECAL <- */
-stock UTIL_TE_GUNSHOTDECAL( const Vector3( vecOrigin ), const pEntity, const iDecalId )
+stock UTIL_TE_GUNSHOTDECAL( const iDest, const Vector3( vecOrigin ), const pEntity, const iDecalId )
 {
+	message_begin_f( iDest, SVC_TEMPENTITY, vecOrigin );
 	write_byte( TE_GUNSHOTDECAL );
 	write_coord_f( vecOrigin[ 0 ] );
 	write_coord_f( vecOrigin[ 1 ] );
@@ -873,8 +869,9 @@ stock UTIL_TE_GUNSHOTDECAL( const Vector3( vecOrigin ), const pEntity, const iDe
 }
 
 /* -> TE_STREAK_SPLASH <- */
-stock UTIL_TE_STREAK_SPLASH( const Vector3( vecOrigin ), const Vector3( vecDirection ), const iColor, const iCount, const iSpeed, const iNoise )
+stock UTIL_TE_STREAK_SPLASH( const iDest, const Vector3( vecOrigin ), const Vector3( vecDirection ), const iColor, const iCount, const iSpeed, const iNoise )
 {
+	message_begin_f( iDest, SVC_TEMPENTITY, vecOrigin );
 	write_byte( TE_STREAK_SPLASH );
 	write_coord_f( vecOrigin[ 0 ] );
 	write_coord_f( vecOrigin[ 1 ] );
@@ -890,8 +887,9 @@ stock UTIL_TE_STREAK_SPLASH( const Vector3( vecOrigin ), const Vector3( vecDirec
 }
 
 /* -> TE_BUBBLETRAIL <- */
-stock UTIL_TE_BUBBLETRAIL( const Vector3( vecStart ), const Vector3( vecEnd ), const iHeigth, const iszModelIndex, const iCount, const iSpeed )
+stock UTIL_TE_BUBBLETRAIL( const iDest, const Vector3( vecStart ), const Vector3( vecEnd ), const iHeigth, const iszModelIndex, const iCount, const iSpeed )
 {
+	message_begin( iDest, SVC_TEMPENTITY );
 	write_byte( TE_BUBBLETRAIL );
 	write_coord_f( vecStart[ 0 ] ); // Start Pos X
 	write_coord_f( vecStart[ 1 ] ); // Start Pos Y
@@ -907,8 +905,9 @@ stock UTIL_TE_BUBBLETRAIL( const Vector3( vecStart ), const Vector3( vecEnd ), c
 }
 
 /* -> TE_SPRITETRAIL <- */
-stock UTIL_TE_SPRITETRAIL( const Vector3( vecStart ), const Vector3( vecEnd ), const iszModelIndex, const iCount, const iLife, const iScale, const iSpeedNoise, const iSpeed )
+stock UTIL_TE_SPRITETRAIL( const iDest, const Vector3( vecStart ), const Vector3( vecEnd ), const iszModelIndex, const iCount, const iLife, const iScale, const iSpeedNoise, const iSpeed )
 {
+	message_begin_f( iDest, SVC_TEMPENTITY );
 	write_byte( TE_SPRITETRAIL );
 	write_coord_f( vecStart[ 0 ] );
 	write_coord_f( vecStart[ 1 ] );
